@@ -966,8 +966,6 @@ function importFromJsonFile(event) {
 document.getElementById('exportButton').addEventListener('click', exportQuotes);
     
 
-const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts'; // Replace with your mock API endpoint
-
 let quotes = [];
 
 // Load quotes from local storage when the page loads
@@ -975,55 +973,36 @@ if (localStorage.getItem('quotes')) {
     quotes = JSON.parse(localStorage.getItem('quotes'));
 }
 
-// Fetch quotes from the server
-async function fetchQuotesFromServer() {
-    try {
-        const response = await fetch(SERVER_URL);
-        if (!response.ok) throw new Error('Failed to fetch quotes from server');
-        const serverQuotes = await response.json();
-        return serverQuotes;
-    } catch (error) {
-        console.error('Error fetching quotes:', error);
-        return [];
-    }
+function addQuote(newQuote) {
+    quotes.push(newQuote);
+    saveQuotes();
 }
 
-// Sync quotes with server data
-async function syncQuotes(serverQuotes) {
-    const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
-    const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
-    localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
-    notifyUser('Quotes have been updated from the server.');
+function saveQuotes() {
+    localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
-// Merge local and server quotes
-function mergeQuotes(localQuotes, serverQuotes) {
-    const quoteMap = new Map();
-    localQuotes.forEach(quote => quoteMap.set(quote.id, quote));
-    serverQuotes.forEach(quote => quoteMap.set(quote.id, quote));
-    return Array.from(quoteMap.values());
+function exportQuotes() {
+    const dataStr = JSON.stringify(quotes);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'quotes.json';
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
-// Notify user of updates
-function notifyUser(message) {
-    const notification = document.createElement('div');
-    notification.textContent = message;
-    notification.style.position = 'fixed';
-    notification.style.bottom = '20px';
-    notification.style.right = '20px';
-    notification.style.padding = '10px';
-    notification.style.backgroundColor = '#4CAF50';
-    notification.style.color = 'white';
-    notification.style.borderRadius = '5px';
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+function importFromJsonFile(event) {
+    const fileReader = new FileReader();
+    fileReader.onload = function(event) {
+        const importedQuotes = JSON.parse(event.target.result);
+        quotes.push(...importedQuotes);
+        saveQuotes();
+        alert('Quotes imported successfully!');
+        // Render quotes to the DOM
+    };
+    fileReader.readAsText(event.target.files[0]);
 }
 
-// Periodically fetch updates from the server
-setInterval(async () => {
-    const serverQuotes = await fetchQuotesFromServer();
-    syncQuotes(serverQuotes);
-}, 10000); // Fetch every 10 seconds
+document.getElementById('exportButton').addEventListener('click', exportQuotes);
