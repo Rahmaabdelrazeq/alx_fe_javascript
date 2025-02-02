@@ -1008,6 +1008,69 @@ function getLastViewedQuote() {
 document.getElementById('exportButton').addEventListener('click', exportQuotes);
     function importFromJsonFile(event) {
     const fileReader = new FileReader();
+        const SERVER_URL = 'https://jsonplaceholder.typicode.com/posts'; // Replace with your mock API endpoint
+
+async function fetchQuotesFromServer() {
+    try {
+        const response = await fetch(SERVER_URL);
+        if (!response.ok) throw new Error('Failed to fetch quotes from server');
+        const serverQuotes = await response.json();
+        return serverQuotes;
+    } catch (error) {
+        console.error('Error fetching quotes:', error);
+        return [];
+    }
+}
+        setInterval(async () => {
+    const serverQuotes = await fetchQuotesFromServer();
+    syncQuotes(serverQuotes);
+}, 10000); // Fetch every 10 seconds
+        function syncQuotes(serverQuotes) {
+    const localQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
+
+    // Merge server and local quotes
+    const mergedQuotes = mergeQuotes(localQuotes, serverQuotes);
+
+    // Save merged quotes to local storage
+    localStorage.setItem('quotes', JSON.stringify(mergedQuotes));
+
+    // Notify user of updates
+    notifyUser('Quotes have been updated from the server.');
+}
+
+function mergeQuotes(localQuotes, serverQuotes) {
+    const quoteMap = new Map();
+
+    // Add local quotes to the map
+    localQuotes.forEach(quote => quoteMap.set(quote.id, quote));
+
+    // Add server quotes to the map, overwriting local quotes with the same ID
+    serverQuotes.forEach(quote => quoteMap.set(quote.id, quote));
+
+    // Convert the map back to an array
+    return Array.from(quoteMap.values());
+}
+        function notifyUser(message) {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    notification.style.position = 'fixed';
+    notification.style.bottom = '20px';
+    notification.style.right = '20px';
+    notification.style.padding = '10px';
+    notification.style.backgroundColor = '#4CAF50';
+    notification.style.color = 'white';
+    notification.style.borderRadius = '5px';
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        notification.remove();
+    }, 5000); // Remove notification after 5 seconds
+}
+        function resolveConflict(localQuote, serverQuote) {
+    const userChoice = confirm(`Conflict detected! Local: "${localQuote.body}"\nServer: "${serverQuote.body}"\nClick OK to keep the server version, or Cancel to keep the local version.`);
+    return userChoice ? serverQuote : localQuote;
+}
+        
     fileReader.onload = function(event) {
         const importedQuotes = JSON.parse(event.target.result);
         quotes.push(...importedQuotes);
@@ -1017,4 +1080,5 @@ document.getElementById('exportButton').addEventListener('click', exportQuotes);
     };
     fileReader.readAsText(event.target.files[0]);
 }
+    
     
