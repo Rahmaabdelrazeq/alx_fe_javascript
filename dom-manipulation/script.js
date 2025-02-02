@@ -981,8 +981,20 @@ function addQuote(newQuote) {
 function saveQuotes() {
     localStorage.setItem('quotes', JSON.stringify(quotes));
 }
+    window.onload = function() {
+    if (localStorage.getItem('quotes')) {
+        quotes = JSON.parse(localStorage.getItem('quotes'));
+        // Render quotes to the DOM
+    }
+};
+    function setLastViewedQuote(quote) {
+    sessionStorage.setItem('lastViewedQuote', JSON.stringify(quote));
+}
 
-function exportQuotes() {
+function getLastViewedQuote() {
+    return JSON.parse(sessionStorage.getItem('lastViewedQuote'));
+}
+    function exportQuotes() {
     const dataStr = JSON.stringify(quotes);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
@@ -993,7 +1005,8 @@ function exportQuotes() {
     URL.revokeObjectURL(url);
 }
 
-function importFromJsonFile(event) {
+document.getElementById('exportButton').addEventListener('click', exportQuotes);
+    function importFromJsonFile(event) {
     const fileReader = new FileReader();
     fileReader.onload = function(event) {
         const importedQuotes = JSON.parse(event.target.result);
@@ -1004,5 +1017,4 @@ function importFromJsonFile(event) {
     };
     fileReader.readAsText(event.target.files[0]);
 }
-
-document.getElementById('exportButton').addEventListener('click', exportQuotes);
+    
