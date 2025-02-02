@@ -867,82 +867,101 @@ function showConflictNotification(localQuote, serverQuote) {
         updateLocalData([resolvedQuote]);
         document.getElementById('conflictNotification').style.display = 'none';
     };
+let quotes = [];
+
+// Load quotes from local storage when the page loads
+if (localStorage.getItem('quotes')) {
+    quotes = JSON.parse(localStorage.getItem('quotes'));
 }
-// Save quotes to local storage
+
+function addQuote(newQuote) {
+    quotes.push(newQuote);
+    saveQuotes();
+}
+
 function saveQuotes() {
-    const quotes = getQuotes(); // Assuming getQuotes() gets the current quotes array
+    localStorage.setItem('quotes', JSON.stringify(quotes));
+}
+    window.onload = function() {
+    if (localStorage.getItem('quotes')) {
+        quotes = JSON.parse(localStorage.getItem('quotes'));
+        // Render quotes to the DOM
+    }
+};
+    window.onload = function() {
+    if (localStorage.getItem('quotes')) {
+        quotes = JSON.parse(localStorage.getItem('quotes'));
+        // Render quotes to the DOM
+    }
+};
+    function setLastViewedQuote(quote) {
+    sessionStorage.setItem('lastViewedQuote', JSON.stringify(quote));
+}
+
+function getLastViewedQuote() {
+    return JSON.parse(sessionStorage.getItem('lastViewedQuote'));
+}
+    function exportQuotes() {
+    const dataStr = JSON.stringify(quotes);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'quotes.json';
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportButton').addEventListener('click', exportQuotes);
+    function importFromJsonFile(event) {
+    const fileReader = new FileReader();
+    fileReader.onload = function(event) {
+        const importedQuotes = JSON.parse(event.target.result);
+        quotes.push(...importedQuotes);
+        saveQuotes();
+        alert('Quotes imported successfully!');
+        // Render quotes to the DOM
+    };
+    fileReader.readAsText(event.target.files[0]);
+}
+    let quotes = [];
+
+// Load quotes from local storage when the page loads
+if (localStorage.getItem('quotes')) {
+    quotes = JSON.parse(localStorage.getItem('quotes'));
+}
+
+function addQuote(newQuote) {
+    quotes.push(newQuote);
+    saveQuotes();
+}
+
+function saveQuotes() {
     localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
-// Load quotes from local storage on page load
-function loadQuotes() {
-    const storedQuotes = localStorage.getItem('quotes');
-    return storedQuotes ? JSON.parse(storedQuotes) : []; // If no quotes in local storage, return an empty array
+function exportQuotes() {
+    const dataStr = JSON.stringify(quotes);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'quotes.json';
+    link.click();
+    URL.revokeObjectURL(url);
 }
 
-// Initialize the app by loading quotes
-window.onload = function() {
-    const quotes = loadQuotes();
-    displayQuotes(quotes); // Assuming displayQuotes() displays the quotes on the page
-};
-
-// Example of adding a new quote
-function addQuote(newQuote) {
-    const quotes = loadQuotes();
-    quotes.push(newQuote);
-    saveQuotes();  // Save updated quotes to local storage
-}
-// Save the last viewed quote to session storage
-function saveLastViewedQuote(quoteId) {
-    sessionStorage.setItem('lastViewedQuote', quoteId);
-}
-
-// Get the last viewed quote from session storage
-function getLastViewedQuote() {
-    return sessionStorage.getItem('lastViewedQuote');
-}
-
-// Display the last viewed quote (if any)
-window.onload = function() {
-    const lastViewedQuoteId = getLastViewedQuote();
-    if (lastViewedQuoteId) {
-        // Assuming you have a function to display a specific quote by ID
-        displayQuoteById(lastViewedQuoteId);
-    }
-};
-// Export quotes as a JSON file
-function exportToJson() {
-    const quotes = loadQuotes();
-    const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'quotes.json';
-    a.click();
-    
-    URL.revokeObjectURL(url); // Clean up
-}
-
-// Attach to a button click event
-document.getElementById('exportButton').addEventListener('click', exportToJson);
-// Handle the import of a JSON file
 function importFromJsonFile(event) {
     const fileReader = new FileReader();
-    fileReader.onload = function(e) {
-        const importedQuotes = JSON.parse(e.target.result);
-        if (Array.isArray(importedQuotes)) {
-            const currentQuotes = loadQuotes();
-            const updatedQuotes = currentQuotes.concat(importedQuotes); // Merge with existing quotes
-            localStorage.setItem('quotes', JSON.stringify(updatedQuotes));
-            alert('Quotes imported successfully!');
-            displayQuotes(updatedQuotes); // Assuming displayQuotes() updates the UI
-        } else {
-            alert('Invalid JSON format. Please upload a valid quotes JSON file.');
-        }
+    fileReader.onload = function(event) {
+        const importedQuotes = JSON.parse(event.target.result);
+        quotes.push(...importedQuotes);
+        saveQuotes();
+        alert('Quotes imported successfully!');
+        // Render quotes to the DOM
     };
     fileReader.readAsText(event.target.files[0]);
 }
 
-
-
+document.getElementById('exportButton').addEventListener('click', exportQuotes);
+    
