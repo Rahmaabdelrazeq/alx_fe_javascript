@@ -780,6 +780,45 @@ function addExportImportControls(container) {
     const importLabel = document.createElement('label');
     importLabel.textContent = 'Import Quotes: ';
     importLabel.appendChild(importInput);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     importContainer.appendChild(importLabel);
     container.appendChild(importContainer);
 }
@@ -829,162 +868,81 @@ function showConflictNotification(localQuote, serverQuote) {
         document.getElementById('conflictNotification').style.display = 'none';
     };
 }
-
-// Initialize quotes from localStorage or use default quotes
-let quotes = JSON.parse(localStorage.getItem('quotes')) || [
-    { text: "Life is what happens while you're busy making other plans.", category: "Life" },
-    { text: "The only way to do great work is to love what you do.", category: "Work" }
-];
-
-document.addEventListener('DOMContentLoaded', () => {
-    const container = createContainer();
-    document.body.appendChild(container);
-    
-    // Initialize UI and display quotes
-    displayQuotes();
-    setupControls();
-    
-    // Load last viewed quote from session storage
-    const lastQuote = sessionStorage.getItem('lastViewedQuote');
-    if (lastQuote) {
-        const quoteObj = JSON.parse(lastQuote);
-        highlightQuote(quoteObj);
-    }
-});
-
-function createContainer() {
-    const container = document.createElement('div');
-    container.className = 'container';
-    
-    // Add quote display area
-    const quoteDisplay = document.createElement('div');
-    quoteDisplay.id = 'quoteDisplay';
-    container.appendChild(quoteDisplay);
-    
-    // Add controls
-    const controls = document.createElement('div');
-    controls.id = 'controls';
-    container.appendChild(controls);
-    
-    // Add form for new quotes
-    const form = document.createElement('div');
-    form.id = 'quoteForm';
-    form.innerHTML = `
-        <input type="text" id="quoteText" placeholder="Enter quote text">
-        <input type="text" id="quoteCategory" placeholder="Enter category">
-        <button onclick="addQuote()">Add Quote</button>
-    `;
-    container.appendChild(form);
-    
-    return container;
-}
-
-function setupControls() {
-    const controls = document.getElementById('controls');
-    
-    // Export button
-    const exportBtn = document.createElement('button');
-    exportBtn.textContent = 'Export Quotes';
-    exportBtn.onclick = exportQuotes;
-    
-    // Import input
-    const importInput = document.createElement('input');
-    importInput.type = 'file';
-    importInput.id = 'importFile';
-    importInput.accept = '.json';
-    importInput.onchange = importFromJsonFile;
-    
-    controls.appendChild(exportBtn);
-    controls.appendChild(importInput);
-}
-
-function displayQuotes() {
-    const display = document.getElementById('quoteDisplay');
-    display.innerHTML = '';
-    
-    quotes.forEach((quote, index) => {
-        const quoteElement = document.createElement('div');
-        quoteElement.className = 'quote';
-        quoteElement.innerHTML = `
-            <p>"${quote.text}"</p>
-            <span>Category: ${quote.category}</span>
-        `;
-        quoteElement.onclick = () => {
-            sessionStorage.setItem('lastViewedQuote', JSON.stringify({ index, ...quote }));
-            highlightQuote({ index, ...quote });
-        };
-        display.appendChild(quoteElement);
-    });
-}
-
-function highlightQuote(quoteObj) {
-    const quotes = document.querySelectorAll('.quote');
-    quotes.forEach((q, i) => {
-        if (i === quoteObj.index) {
-            q.classList.add('highlighted');
-        } else {
-            q.classList.remove('highlighted');
-        }
-    });
-}
-
-function addQuote() {
-    const text = document.getElementById('quoteText').value.trim();
-    const category = document.getElementById('quoteCategory').value.trim();
-    
-    if (!text || !category) {
-        alert('Please enter both quote text and category');
-        return;
-    }
-    
-    quotes.push({ text, category });
-    saveQuotes();
-    displayQuotes();
-    
-    // Clear inputs
-    document.getElementById('quoteText').value = '';
-    document.getElementById('quoteCategory').value = '';
-}
-
+// Save quotes to local storage
 function saveQuotes() {
+    const quotes = getQuotes(); // Assuming getQuotes() gets the current quotes array
     localStorage.setItem('quotes', JSON.stringify(quotes));
 }
 
-function exportQuotes() {
-    const jsonString = JSON.stringify(quotes, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    
-    const downloadLink = document.createElement('a');
-    downloadLink.href = url;
-    downloadLink.download = 'quotes.json';
-    
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
-    URL.revokeObjectURL(url);
+// Load quotes from local storage on page load
+function loadQuotes() {
+    const storedQuotes = localStorage.getItem('quotes');
+    return storedQuotes ? JSON.parse(storedQuotes) : []; // If no quotes in local storage, return an empty array
 }
 
-function importFromJsonFile(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+// Initialize the app by loading quotes
+window.onload = function() {
+    const quotes = loadQuotes();
+    displayQuotes(quotes); // Assuming displayQuotes() displays the quotes on the page
+};
+
+// Example of adding a new quote
+function addQuote(newQuote) {
+    const quotes = loadQuotes();
+    quotes.push(newQuote);
+    saveQuotes();  // Save updated quotes to local storage
+}
+// Save the last viewed quote to session storage
+function saveLastViewedQuote(quoteId) {
+    sessionStorage.setItem('lastViewedQuote', quoteId);
+}
+
+// Get the last viewed quote from session storage
+function getLastViewedQuote() {
+    return sessionStorage.getItem('lastViewedQuote');
+}
+
+// Display the last viewed quote (if any)
+window.onload = function() {
+    const lastViewedQuoteId = getLastViewedQuote();
+    if (lastViewedQuoteId) {
+        // Assuming you have a function to display a specific quote by ID
+        displayQuoteById(lastViewedQuoteId);
+    }
+};
+// Export quotes as a JSON file
+function exportToJson() {
+    const quotes = loadQuotes();
+    const blob = new Blob([JSON.stringify(quotes, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
     
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'quotes.json';
+    a.click();
+    
+    URL.revokeObjectURL(url); // Clean up
+}
+
+// Attach to a button click event
+document.getElementById('exportButton').addEventListener('click', exportToJson);
+// Handle the import of a JSON file
+function importFromJsonFile(event) {
     const fileReader = new FileReader();
-    fileReader.onload = function(event) {
-        try {
-            const importedQuotes = JSON.parse(event.target.result);
-            if (Array.isArray(importedQuotes)) {
-                quotes.push(...importedQuotes);
-                saveQuotes();
-                displayQuotes();
-                alert('Quotes imported successfully!');
-            } else {
-                throw new Error('Invalid JSON format');
-            }
-        } catch (error) {
-            alert('Error importing quotes: ' + error.message);
+    fileReader.onload = function(e) {
+        const importedQuotes = JSON.parse(e.target.result);
+        if (Array.isArray(importedQuotes)) {
+            const currentQuotes = loadQuotes();
+            const updatedQuotes = currentQuotes.concat(importedQuotes); // Merge with existing quotes
+            localStorage.setItem('quotes', JSON.stringify(updatedQuotes));
+            alert('Quotes imported successfully!');
+            displayQuotes(updatedQuotes); // Assuming displayQuotes() updates the UI
+        } else {
+            alert('Invalid JSON format. Please upload a valid quotes JSON file.');
         }
     };
-    fileReader.readAsText(file);
+    fileReader.readAsText(event.target.files[0]);
 }
+
+
+
