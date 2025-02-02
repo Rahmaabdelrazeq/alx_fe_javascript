@@ -131,6 +131,16 @@ function updateCategoryFilter(selectElement) {
         selectElement.appendChild(option);
     });
 }
+ function importFromJsonFile(event) {
+    const fileReader = new FileReader();
+    fileReader.onload = function(event) {
+      const importedQuotes = JSON.parse(event.target.result);
+      quotes.push(...importedQuotes);
+      saveQuotes();
+      alert('Quotes imported successfully!');
+    };
+    fileReader.readAsText(event.target.files[0]);
+  }
 // Initialize quotes from localStorage or use default quotes
 let quotes = JSON.parse(localStorage.getItem('quotes')) || [
     { text: "Life is what happens while you're busy making other plans.", category: "Life" },
