@@ -15,5 +15,10 @@
     <!-- Dynamically populated categories -->
   </select>
      <input type="file" id="importFile" accept=".json" onchange="importFromJsonFile(event)" />
+   <div id="conflictNotification" style="display: none;">
+    <p>Conflict detected: <span id="localQuoteText"></span> vs <span id="serverQuoteText"></span></p>
+    <button id="resolveConflictBtn">Resolve Conflict</button>
+</div>
+
   </body>
   </html>
