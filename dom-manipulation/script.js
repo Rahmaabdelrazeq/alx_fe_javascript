@@ -784,240 +784,46 @@ function addExportImportControls(container) {
 
 // Retain existing helper functions (saveQuotes, exportToJson, importFromJsonFile, etc.)
 
-// Server configuration
-const API_URL = 'https://jsonplaceholder.typicode.com/posts';
-const SYNC_INTERVAL = 30000; // 30 seconds
-
-// Data structure for quotes with versioning
-let quotes = JSON.parse(localStorage.getItem('quotes')) || [
-    { id: 1, text: "Life is what happens while you're busy making other plans.", category: "Life", version: 1 },
-    { id: 2, text: "The only way to do great work is to love what you do.", category: "Work", version: 1 },
-    { id: 3, text: "Innovation distinguishes between a leader and a follower.", category: "Leadership", version: 1 },
-    { id: 4, text: "Stay hungry, stay foolish.", category: "Inspiration", version: 1 }
-];
-
-// Track sync status
-let lastSyncTime = localStorage.getItem('lastSyncTime') || null;
-let isSyncing = false;
-
-document.addEventListener('DOMContentLoaded', () => {
-    setupUI();
-    initializeSync();
-});
-
-function setupUI() {
-    const mainContainer = document.createElement('div');
-    mainContainer.className = 'main-container';
-    document.body.appendChild(mainContainer);
-
-    // Add sync status indicator
-    const syncStatus = document.createElement('div');
-    syncStatus.id = 'syncStatus';
-    syncStatus.className = 'sync-status';
-    mainContainer.appendChild(syncStatus);
-    updateSyncStatus('Idle');
-
-    // Add notification area
-    const notificationArea = document.createElement('div');
-    notificationArea.id = 'notificationArea';
-    notificationArea.className = 'notification-area';
-    mainContainer.appendChild(notificationArea);
-
-    // Setup other UI elements (reusing previous implementation)
-    setupQuoteDisplay(mainContainer);
-    setupControls(mainContainer);
-    
-    // Initialize categories and restore last filter
-    populateCategories();
-    restoreLastFilter();
-    filterQuotes();
-}
-
-function initializeSync() {
-    // Initial sync
-    syncWithServer();
-    
-    // Set up periodic sync
-    setInterval(syncWithServer, SYNC_INTERVAL);
-}
-
-async function syncWithServer() {
-    if (isSyncing) return;
-    isSyncing = true;
-    updateSyncStatus('Syncing...');
-
+async function fetchQuotesFromServer() {
     try {
-        // Simulate fetching server data
-        const response = await fetch(API_URL);
-        const serverData = await response.json();
-        
-        // Convert server data to quote format (for simulation)
-        const serverQuotes = serverData.slice(0, 5).map(post => ({
-            id: post.id,
-            text: post.title,
-            category: 'Server',
-            version: Date.now()
-        }));
-
-        // Merge server and local quotes
-        await mergeQuotes(serverQuotes);
-        
-        lastSyncTime = Date.now();
-        localStorage.setItem('lastSyncTime', lastSyncTime);
-        updateSyncStatus('Last synced: ' + new Date(lastSyncTime).toLocaleTimeString());
-        
-        // Refresh UI
-        populateCategories();
-        filterQuotes();
+        const response = await fetch('https://jsonplaceholder.typicode.com/posts');
+        const data = await response.json();
+        return data;
     } catch (error) {
-        console.error('Sync failed:', error);
-        updateSyncStatus('Sync failed');
-        showNotification('Sync failed. Will retry later.', 'error');
-    } finally {
-        isSyncing = false;
+        console.error('Error fetching quotes:', error);
     }
 }
-
-async function mergeQuotes(serverQuotes) {
-    const conflicts = [];
+setInterval(async () => {
+    const newQuotes = await fetchQuotesFromServer();
+    updateLocalData(newQuotes);
+}, 60000); // Fetch every 60 seconds
+function updateLocalData(newQuotes) {
+    const currentQuotes = JSON.parse(localStorage.getItem('quotes')) || [];
     
-    serverQuotes.forEach(serverQuote => {
-        const localQuote = quotes.find(q => q.id === serverQuote.id);
-        
-        if (!localQuote) {
-            // New quote from server
-            quotes.push(serverQuote);
-            showNotification(`New quote added: "${serverQuote.text}"`, 'info');
-        } else if (serverQuote.version > localQuote.version) {
-            // Server has newer version
-            conflicts.push({ local: localQuote, server: serverQuote });
+    // Example: Overwrite or merge quotes from the server
+    newQuotes.forEach(newQuote => {
+        const existingQuoteIndex = currentQuotes.findIndex(q => q.id === newQuote.id);
+        if (existingQuoteIndex === -1) {
+            currentQuotes.push(newQuote); // New quote from server
+        } else {
+            currentQuotes[existingQuoteIndex] = newQuote; // Update quote if necessary
         }
     });
 
-    if (conflicts.length > 0) {
-        await handleConflicts(conflicts);
-    }
-
-    saveQuotes();
+    localStorage.setItem('quotes', JSON.stringify(currentQuotes));
 }
-
-async function handleConflicts(conflicts) {
-    conflicts.forEach(conflict => {
-        showConflictResolutionDialog(conflict);
-    });
+function resolveConflict(localQuote, serverQuote) {
+    // If the local quote has been updated, give precedence to the server version
+    return serverQuote;
 }
+function showConflictNotification(localQuote, serverQuote) {
+    document.getElementById('localQuoteText').innerText = localQuote.text;
+    document.getElementById('serverQuoteText').innerText = serverQuote.text;
+    document.getElementById('conflictNotification').style.display = 'block';
 
-function showConflictResolutionDialog(conflict) {
-    const dialog = document.createElement('div');
-    dialog.className = 'conflict-dialog';
-    
-    const message = document.createElement('p');
-    message.textContent = 'Quote conflict detected:';
-    
-    const localVersion = document.createElement('div');
-    localVersion.className = 'version-option';
-    localVersion.innerHTML = `
-        <h4>Local Version</h4>
-        <p>${conflict.local.text}</p>
-        <p>Category: ${conflict.local.category}</p>
-    `;
-    
-    const serverVersion = document.createElement('div');
-    serverVersion.className = 'version-option';
-    serverVersion.innerHTML = `
-        <h4>Server Version</h4>
-        <p>${conflict.server.text}</p>
-        <p>Category: ${conflict.server.category}</p>
-    `;
-    
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'conflict-buttons';
-    
-    const keepLocal = document.createElement('button');
-    keepLocal.textContent = 'Keep Local';
-    keepLocal.onclick = () => resolveConflict(conflict, 'local');
-    
-    const keepServer = document.createElement('button');
-    keepServer.textContent = 'Keep Server';
-    keepServer.onclick = () => resolveConflict(conflict, 'server');
-    
-    buttonContainer.appendChild(keepLocal);
-    buttonContainer.appendChild(keepServer);
-    
-    dialog.appendChild(message);
-    dialog.appendChild(localVersion);
-    dialog.appendChild(serverVersion);
-    dialog.appendChild(buttonContainer);
-    
-    document.getElementById('notificationArea').appendChild(dialog);
-}
-
-function resolveConflict(conflict, choice) {
-    const index = quotes.findIndex(q => q.id === conflict.local.id);
-    if (index !== -1) {
-        quotes[index] = choice === 'local' ? 
-            { ...conflict.local, version: Date.now() } : 
-            { ...conflict.server, version: Date.now() };
-    }
-    
-    saveQuotes();
-    filterQuotes();
-    
-    // Remove conflict dialog
-    const dialogs = document.querySelectorAll('.conflict-dialog');
-    dialogs.forEach(dialog => dialog.remove());
-    
-    showNotification('Conflict resolved successfully', 'success');
-}
-
-function updateSyncStatus(status) {
-    const statusElement = document.getElementById('syncStatus');
-    if (statusElement) {
-        statusElement.textContent = status;
-    }
-}
-
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    const notificationArea = document.getElementById('notificationArea');
-    notificationArea.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
-}
-
-// Enhance existing quote operations with versioning
-function addQuote() {
-    const quoteText = document.getElementById('newQuoteText').value.trim();
-    const quoteCategory = document.getElementById('newQuoteCategory').value.trim();
-    
-    if (!quoteText || !quoteCategory) {
-        showNotification('Please enter both quote text and category', 'error');
-        return;
-    }
-    
-    const newQuote = {
-        id: Date.now(),
-        text: quoteText,
-        category: quoteCategory,
-        version: Date.now()
+    document.getElementById('resolveConflictBtn').onclick = () => {
+        const resolvedQuote = resolveConflict(localQuote, serverQuote);
+        updateLocalData([resolvedQuote]);
+        document.getElementById('conflictNotification').style.display = 'none';
     };
-    
-    quotes.push(newQuote);
-    saveQuotes();
-    
-    document.getElementById('newQuoteText').value = '';
-    document.getElementById('newQuoteCategory').value = '';
-    
-    populateCategories();
-    filterQuotes();
-    
-    showNotification('Quote added successfully', 'success');
 }
-
-
-// but update them to call populateCategories() and filterQuotes() after modifying the quotes array
